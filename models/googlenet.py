@@ -48,10 +48,11 @@ class GoogLeNet(nn.Module):
         return out
 
 
-def test():
-    net = GoogLeNet()
+if __name__ == '__main__':
+    model = GoogLeNet()
     x = torch.randn(1, 3, 32, 32)
-    y = net(x)
-    print(y.size())
+    y = model(x)
+    print(y)
+    params = model.state_dict().keys()
+    print(len(params))
 
-# test()

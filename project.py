@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+
 @dataclass
 class Project:
     BASE_PATH: Path = Path(__file__).parents[0]
