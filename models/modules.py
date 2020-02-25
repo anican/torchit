@@ -1,13 +1,15 @@
 import torch
 from torch import nn
+from utils import pt_util
 
 
 def num_flat_features(x: torch.Tensor) -> int:
     r"""
-    Returns the number of features in a convolution layer.
-    Args:
-        x (Tensor) : input tensor
-    Examples:
+
+    :param x:
+    :return:
+
+    Examples::
         >>> x = torch.randn(5, 3, 7, 7)
         >>> num_flat_features(x)
         147
@@ -19,6 +21,10 @@ def num_flat_features(x: torch.Tensor) -> int:
 
 
 class BaseModule(nn.Module):
+    r"""
+    Base module for all neural network models. Adds additional functionality for fancy 'restore' during neural network
+    experiments.
+    """
     def __init__(self):
         super(BaseModule, self).__init__()
         self.best_accuracy = 0
@@ -27,7 +33,36 @@ class BaseModule(nn.Module):
         raise NotImplementedError
 
     def loss(self, prediction, label, reduction='mean'):
+        r"""
+        Specifies the loss criterion for this neural network model.
+
+        :param prediction:
+        :param label: target labels associated with the prediction spit out by the model.
+                      Must be of type torch.LongTensor.
+        :param reduction:
+        :return:
+
+        Examples::
+            >>> # sample implementation of loss() using nn.CrossEntropyLoss() from torch.nn
+            >>> loss_fn = nn.CrossEntropyLoss(reduction=reduction)
+            >>> loss = loss_fn(prediction, label.squeeze().long())
+            >>> return loss
+        """
         raise NotImplementedError
+
+    def save_model(self, file_path, num_to_keep=1):
+        pt_util.save(self, file_path, num_to_keep)
+
+    def save_best_model(self, accuracy, file_path, num_to_keep=1):
+        if accuracy > self.best_accuracy:
+            self.best_accuracy = accuracy
+            self.save_best_model(self, file_path, num_to_keep)
+
+    def load_model(self, file_path):
+        pt_util.restore(self, file_path)
+
+    def load_last_model(self, log_path):
+        return pt_util.restore_latest(self, log_path)
 
 
 class Inception(nn.Module):

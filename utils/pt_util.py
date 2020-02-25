@@ -7,23 +7,21 @@ import matplotlib.pyplot as plt
 import pickle
 
 
-def restore(net: torch.nn.Module, save_file: str):
-    r"""Restores the weights from a saved file
+def restore(net, save_file):
+    """Restores the weights from a saved file
 
-    This does more than the simple PyTorch restore. It checks that the names
+    This does more than the simple Pytorch restore. It checks that the names
     of variables match, and if they don't doesn't throw a fit. It is similar
     to how Caffe acts. This is especially useful if you decide to change your
     network architecture but don't want to retrain from scratch.
 
     Args:
-        net(torch.nn.Module): The network to be restored
-        save_file(str): The file path for network
+        net(torch.nn.Module): The net to restore
+        save_file(str): The file path
     """
     net_state_dict = net.state_dict()
     restore_state_dict = torch.load(save_file)
-
     restored_var_names = set()
-
     print('Restoring:')
     for var_name in restore_state_dict.keys():
         if var_name in net_state_dict:
@@ -52,6 +50,8 @@ def restore(net: torch.nn.Module, save_file: str):
         print('Restored all variables')
     else:
         print('Did not restore:\n\t' + '\n\t'.join(ignored_var_names))
+    if len(unset_var_names) == 0:
+        print('No new variables')
     else:
         print('Initialized but did not modify:\n\t' + '\n\t'.join(unset_var_names))
 
@@ -67,7 +67,6 @@ def restore_latest(net, folder):
     Returns:
         int: Attempts to parse the epoch from the state and returns it if possible. Otherwise returns 0.
     """
-
     checkpoints = sorted(glob.glob(folder + '/*.pt'), key=os.path.getmtime)
     start_it = 0
     if len(checkpoints) > 0:
@@ -88,7 +87,6 @@ def save(net, file_name, num_to_keep=1):
         num_to_keep(int): Specifies how many previous saved states to keep once this one has been saved.
             Defaults to 1. Specifying < 0 will not remove any previous saves.
     """
-
     folder = os.path.dirname(file_name)
     if not os.path.exists(folder):
         os.makedirs(folder)
@@ -99,6 +97,7 @@ def save(net, file_name, num_to_keep=1):
     if num_to_keep > 0:
         for ff in checkpoints[:-num_to_keep]:
             os.remove(ff)
+
 
 def write_log(filename, data):
     """Pickles and writes data to a file
@@ -112,23 +111,22 @@ def write_log(filename, data):
         os.makedirs(os.path.dirname(filename))
     pickle.dump(data, open(filename, 'wb'))
 
+
 def read_log(filename, default_value=None):
     """Reads pickled data or returns the default value if none found
-
     Args:
         filename(str): File name
         default_value(anything): Value to return if no file is found
     Returns:
         unpickled file
     """
-
     if os.path.exists(filename):
         return pickle.load(open(filename, 'rb'))
     return default_value
 
+
 def show_images(images, titles=None, columns=5, max_rows=5):
     """Shows images in a tiled format
-
     Args:
         images(list[np.array]): Images to show
         titles(list[string]): Titles for each of the images
@@ -145,9 +143,9 @@ def show_images(images, titles=None, columns=5, max_rows=5):
         plt.imshow(image)
     plt.show()
 
+
 def plot(x_values, y_values, title, xlabel, ylabel):
     """Plots a line graph
-
     Args:
         x_values(list or np.array): x values for the line
         y_values(list or np.array): y values for the line
@@ -161,6 +159,7 @@ def plot(x_values, y_values, title, xlabel, ylabel):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.show()
+
 
 def to_scaled_uint8(array):
     r"""Returns a normalized uint8 scaled to 0-255. This is useful for showing images especially of floats.
