@@ -5,8 +5,9 @@ import numpy as np
 from project import Project
 import time
 import torch
-from torch.utils.data import DataLoader
+from torch import nn
 from torch import optim
+from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision import datasets
 from utils import pt_util
@@ -80,22 +81,6 @@ def test(model, device, data_loader, return_images=False, log_interval=None):
     else:
         return test_loss, test_accuracy
 
-def test(model, device, data_loader):
-    model.eval()  # set in eval mode
-    test_loss = 0
-    num_correct = 0
-
-    correct_images = []
-    correct_values = []
-
-    error_images = []
-    predicted_values = []
-    gt_values = []
-
-    with torch.no_grad():
-        for batch_idx, (data, label) in enumerate(data_loader):
-            pass
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='<Add Project Description>')
@@ -121,9 +106,20 @@ if __name__ == '__main__':
     data_train = datasets.CIFAR10(root=str(project.DATA_PATH), train=True, download=True, transform=transform_train)
     data_test = datasets.CIFAR10(root=str(project.DATA_PATH), train=False, download=True, transform=transform_test)
 
-    use_cuda = torch.cuda.is_available()
+    # Train on GPU (if CUDA is available)
     # torch.manual_seed(args.seed)
+    use_cuda = torch.cuda.is_available()
     torch_device = torch.device("cuda" if use_cuda else "cpu")
+
+    # Neural Network Model
+    network = GoogLeNet().to(torch_device)
+
+    # Loss Functions
+    criterion = nn.MSELoss()
+
+    # Create Optimizer
+    opt = optim.SGD(network.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+
     print('using device', torch_device)
     print('num cpus:', multiprocessing.cpu_count())
     kwargs = {'num_workers': multiprocessing.cpu_count(), 'pin_memory': True} if use_cuda else {}
@@ -134,7 +130,6 @@ if __name__ == '__main__':
     test_loader = DataLoader(data_test, batch_size=args.test_batch_size, **kwargs)
 
     network = GoogLeNet.to(device=torch_device)
-    opt = optim.SGD(network.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     start_epoch = network.load_last_model(str(project.DATA_PATH) + 'checkpoints')
 
     train_losses, test_losses, test_accuracies = pt_util.read_log(str(project.LOG_PATH), ([], [], []))
