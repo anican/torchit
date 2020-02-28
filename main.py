@@ -129,8 +129,7 @@ if __name__ == '__main__':
     train_loader = DataLoader(data_train, batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = DataLoader(data_test, batch_size=args.test_batch_size, **kwargs)
 
-    network = GoogLeNet.to(device=torch_device)
-    start_epoch = network.load_last_model(str(project.DATA_PATH) + 'checkpoints')
+    start_epoch = network.load_last_model(str(project.LOG_PATH))
 
     train_losses, test_losses, test_accuracies = pt_util.read_log(str(project.LOG_PATH), ([], [], []))
     # test_loss, test_accuracy = test(model, torch_device, test_loader)
