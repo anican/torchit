@@ -1,15 +1,16 @@
 import argparse
 from models import GoogLeNet
-import multiprocessing
 import numpy as np
 from project import Project
 import time
 import torch
+from torch import multiprocessing
 from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision import datasets
+import traceback
 from utils import pt_util
 
 
@@ -110,27 +111,53 @@ if __name__ == '__main__':
     # torch.manual_seed(args.seed)
     use_cuda = torch.cuda.is_available()
     torch_device = torch.device("cuda" if use_cuda else "cpu")
+    print('using device', torch_device)
 
     # Neural Network Model
     network = GoogLeNet().to(torch_device)
 
-    # Loss Functions
+    # Loss Functions TODO:
     criterion = nn.MSELoss()
 
     # Create Optimizer
     opt = optim.SGD(network.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
-    print('using device', torch_device)
-    print('num cpus:', multiprocessing.cpu_count())
-    kwargs = {'num_workers': multiprocessing.cpu_count(), 'pin_memory': True} if use_cuda else {}
+    num_workers = multiprocessing.cpu_count()
+    print('Number of CPUs:', num_workers)
+    kwargs = {'num_workers': num_workers, 'pin_memory': True} if use_cuda else {}
     class_names = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
     # replace with get_dataloaders() in the template overall
     train_loader = DataLoader(data_train, batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = DataLoader(data_test, batch_size=args.test_batch_size, **kwargs)
 
-    start_epoch = network.load_last_model(str(project.LOG_PATH))
-
+    start_epoch = network.load_last_model(str(project.WEIGHTS_PATH))
     train_losses, test_losses, test_accuracies = pt_util.read_log(str(project.LOG_PATH), ([], [], []))
-    # test_loss, test_accuracy = test(model, torch_device, test_loader)
+    test_loss, test_accuracy = test(network, torch_device, test_loader)
+    test_losses.append((start_epoch, test_loss))
+    test_accuracies.append((start_epoch, test_accuracy))
+
+    try:
+        for epoch in range(start_epoch, args.epochs + 1):
+            train_loss = train(network, torch_device, train_loader, opt, epoch, args.print_interval)
+            test_loss, test_accuracy = test(network, torch_device, test_loader)
+            train_losses.append((epoch, train_loss))
+            test_losses.append((epoch, test_loss))
+            test_accuracies.append((epoch, test_accuracy))
+            pt_util.write_log(str(project.LOG_PATH), (train_losses, test_losses, test_accuracies))
+            network.save_best_model(test_accuracy, str(project.WEIGHTS_PATH) + '/%03d.pt' % epoch)
+    except KeyboardInterrupt as ke:
+        print('Manually interrupted execution...')
+    except:
+        traceback.print_exc()
+    finally:
+        # TODO: Shouldn't this be saved to most recent epoch
+        print('Saving model in its current state')
+        network.save_model(str(project.WEIGHTS_PATH) + '/%03d.pt' % epoch, 0)
+        ep, val = zip(*train_losses)
+        pt_util.plot(ep, val, 'Train loss', 'Epoch', 'Error')
+        ep, val = zip(*test_losses)
+        pt_util.plot(ep, val, 'Test loss', 'Epoch', 'Error')
+        ep, val = zip(*test_accuracies)
+        pt_util.plot(ep, val, 'Test accuracy', 'Epoch', 'Error')
 

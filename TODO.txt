@@ -3,6 +3,7 @@ Project Template TODO:
 - add utility to find mean/variance across channels of a dataset (for application in transforms)
 - train code
 - logging (like print but more robust)
+- fix logic for start epoch
 
 Helpful links for improving my machine learning workflow
 https://www.reddit.com/r/pytorch/top/?t=all

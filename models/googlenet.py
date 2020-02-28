@@ -1,11 +1,15 @@
-import torch
-import torch.nn as nn
 from models import Inception
+import torch
+from torch import nn
+from utils import pt_util
 
 
 class GoogLeNet(nn.Module):
-    def __init__(self):
+    def __init__(self, criterion=nn.CrossEntropyLoss()):
         super(GoogLeNet, self).__init__()
+        self.criterion = criterion
+        self.best_accuracy = 0
+
         self.pre_layers = nn.Sequential(
             nn.Conv2d(3, 192, kernel_size=3, padding=1),
             nn.BatchNorm2d(192),
@@ -46,6 +50,25 @@ class GoogLeNet(nn.Module):
         out = out.view(out.size(0), -1)
         out = self.linear(out)
         return out
+
+    def loss(self, prediction, label):
+        loss = self.criterion(prediction, label.squeeze())
+        return loss
+
+    def save_model(self, file_path, num_to_keep=1):
+        pt_util.save(self, file_path, num_to_keep)
+
+    def save_best_model(self, accuracy, file_path, num_to_keep=1):
+        # TODO save the model if it is the best
+        if accuracy > self.best_accuracy:
+            self.best_accuracy = accuracy
+            self.save_model(file_path, num_to_keep)
+
+    def load_model(self, file_path):
+        pt_util.restore(self, file_path)
+
+    def load_last_model(self, dir_path):
+        return pt_util.restore_latest(self, dir_path)
 
 
 if __name__ == '__main__':
